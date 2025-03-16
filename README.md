@@ -1,4 +1,4 @@
-# Spotify to MP3 Downloader
+# Spotify Downloader
 
 A Python application that downloads songs from Spotify playlists, albums, or your liked songs as MP3 files (or other audio formats). The tool searches for each track on YouTube and downloads the audio in your preferred format and quality. It features both a command-line interface and a web interface for easier use.
 
@@ -17,7 +17,6 @@ A Python application that downloads songs from Spotify playlists, albums, or you
 - **Real-time progress tracking**
 - **Custom download location support**
 
-![anime girl holding python book](Aharen_Reina_Holding_Python_Programming_Language.png)
 ## Prerequisites
 
 - Python 3.9+
