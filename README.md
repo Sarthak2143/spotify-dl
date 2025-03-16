@@ -17,6 +17,8 @@ A Python application that downloads songs from Spotify playlists, albums, or you
 - Real-time progress tracking
 - Custom download location support
 
+![screenshot](screenshot.png)
+
 ## Prerequisites
 
 - Python 3.9+
