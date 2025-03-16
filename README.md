@@ -1,6 +1,6 @@
 # Spotify to MP3 Downloader
 
-A Python script that downloads songs from Spotify playlists, albums, or your liked songs as MP3 files (or other audio formats). The tool searches for each track on YouTube and downloads the audio in your preferred format and quality.
+A Python application that downloads songs from Spotify playlists, albums, or your liked songs as MP3 files (or other audio formats). The tool searches for each track on YouTube and downloads the audio in your preferred format and quality. It features both a command-line interface and a web interface for easier use.
 
 ## Features
 
@@ -12,6 +12,10 @@ A Python script that downloads songs from Spotify playlists, albums, or your lik
 - Graceful handling of interruptions
 - Automatic retry mechanism for failed downloads
 - Multithreaded YouTube URL fetching
+- **Web interface for easier use**
+- **Batch mode for downloading multiple playlists/albums at once**
+- **Real-time progress tracking**
+- **Custom download location support**
 
 ![anime girl holding python book](Aharen_Reina_Holding_Python_Programming_Language.png)
 ## Prerequisites
@@ -21,22 +25,22 @@ A Python script that downloads songs from Spotify playlists, albums, or your lik
 - Required Python packages (install via pip):
 
   ```bash
-  pip install yt-dlp spotipy youtube-search-python tqdm
+  pip install -r requirements.txt
   ```
 
 ## Setup
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/sarthak2143/spotify2mp3.git
-   cd spotify2mp3
+   git clone https://github.com/sarthak2143/spotify-dl.git
+   cd spotify-dl
    ```
 
 2. Create a Spotify Developer account and get your credentials:
    - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
    - Create a new application
    - Get your Client ID and Client Secret
-   - Add `http://localhost:8888/callback` to your Redirect URIs in the app settings
+   - Add `http://localhost:5000/callback` to your Redirect URIs in the app settings
 
 3. Create a `config.json` file in the project directory:
 
@@ -44,15 +48,17 @@ A Python script that downloads songs from Spotify playlists, albums, or your lik
    {
        "CLIENT_ID": "your_client_id_here",
        "CLIENT_SECRET": "your_client_secret_here",
-       "REDIRECT_URI": "http://localhost:8888/callback"
+       "REDIRECT_URI": "http://localhost:5000/callback"
    }
    ```
 
 ## Usage
 
-The script can be used in several ways:
+The application can be used in two ways: through the command-line interface or web interface.
 
-### Basic Usage
+### Command Line Interface
+
+#### Basic Usage
 
 ```bash
 # Download a playlist
@@ -65,7 +71,7 @@ python main.py "https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3"
 python main.py "liked"
 ```
 
-### Advanced Options
+#### Advanced Options
 
 ```bash
 # Limit the number of songs to download (e.g., first 10 songs)
@@ -81,21 +87,40 @@ python main.py "playlist_url" -q 320
 python main.py "playlist_url" -l 5 -f mp3 -q 320
 ```
 
-### Command Line Arguments
+#### Command Line Arguments
 
 - `url`: Spotify playlist/album URL or 'liked' for your liked songs
 - `-l, --limit`: Limit the number of songs to download
 - `-f, --format`: Audio format (mp3, m4a, wav)
 - `-q, --quality`: Audio quality in kbps (128, 192, 256, 320)
 
+### Web Interface
 
-## Legal Notice
+The web interface provides an easier way to download Spotify content with a user-friendly UI and real-time progress tracking.
 
-This tool is for personal use only. Please respect copyright laws and terms of service of both Spotify and YouTube. Make sure you have the right to download and store the music.
+#### Starting the Web Server
 
+```bash
+python app.py
+```
+
+This will start a Flask web server on port 5001. Open your browser and navigate to:
+
+```
+http://localhost:5001
+```
+
+#### Using the Web Interface
+
+1. Enter a Spotify URL in the input field (playlist, album, or type "liked" for your liked songs)
+2. Choose your preferred audio format and quality
+3. Optionally specify a custom download location and limit
+4. Toggle "Batch Mode" to download multiple playlists/albums at once (enter one URL per line)
+5. Click "Download" and monitor the progress in real-time
 
 ## Acknowledgments
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) for YouTube downloading functionality
 - [spotipy](https://spotipy.readthedocs.io/) for Spotify API integration
 - [youtube-search-python](https://github.com/alexmercerind/youtube-search-python) for YouTube search functionality
+- [Flask](https://flask.palletsprojects.com/) for the web interface
