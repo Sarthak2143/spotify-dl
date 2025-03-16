@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Downloader</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Spotify to MP3 Downloader</h1>
+        
+        {% if error %}
+        <div class="alert alert-error">
+            <span class="alert-icon">⚠️</span>
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        {% if success %}
+        <div class="alert alert-success">
+            <span class="alert-icon">✅</span>
+            {{ success }}
+        </div>
+        {% endif %}
+        
+        <!-- Download Progress Section (hidden by default) -->
+        <div id="progress-container" class="progress-container" style="display: none;">
+            <h3 id="progress-status">Preparing download...</h3>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <div class="progress-details">
+                <span id="progress-text">0%</span>
+                <span id="progress-count">0/0 songs</span>
+            </div>
+            <div id="completion-message"></div>
+            <button id="new-download-btn" class="new-download-btn" style="display: none;">Start New Download</button>
+        </div>
+        
+        <form id="download-form" method="POST" action="{{ url_for('download') }}" class="download-form">
+            <div class="form-group">
+                <label for="url-input">Spotify URL or "liked":</label>
+                <!-- Single URL input (default) -->
+                <input type="text" id="url-input" name="url" placeholder="Enter spotify URL or 'liked' for your liked songs">
+                
+                <!-- Multiple URL textarea (for batch mode) -->
+                <textarea id="url-textarea" name="url" placeholder="Enter multiple Spotify URLs, one per line" style="display: none;"></textarea>
+                
+                <div class="form-hint" id="single-url-hint">Enter a Spotify playlist, album URL, or type "liked" for your liked songs</div>
+                <div class="form-hint" id="batch-url-hint" style="display: none;">For batch downloading, enter multiple URLs, one per line</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="output_dir">Download Location (optional):</label>
+                <input type="text" id="output_dir" name="output_dir" 
+                       placeholder="Leave empty for default location">
+            </div>
+            
+            <div class="form-group">
+                <label for="limit">Limit (optional):</label>
+                <input type="number" id="limit" name="limit" min="1">
+            </div>
+            
+            <div class="form-group">
+                <label for="format">Audio Format:</label>
+                <select id="format" name="format">
+                    <option value="mp3">MP3</option>
+                    <option value="m4a">M4A</option>
+                    <option value="wav">WAV</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="quality">Audio Quality:</label>
+                <select id="quality" name="quality">
+                    <option value="128">128 kbps</option>
+                    <option value="192" selected>192 kbps</option>
+                    <option value="256">256 kbps</option>
+                    <option value="320">320 kbps</option>
+                </select>
+            </div>
+            
+            <div class="form-check">
+                <input type="checkbox" id="batch_mode" name="batch_mode" value="true">
+                <label for="batch_mode">Batch Mode (URLs entered line by line)</label>
+            </div>
+            
+            <button id="download-button" type="submit" class="download-btn">Download</button>
+        </form>
+        <div class="description">
+            Enter a Spotify playlist, album URL, or type "liked" for your liked songs.
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if there's an active download task
+            const taskId = "{{ task_id|safe }}";
+            if (taskId) {
+                startProgressTracking(taskId);
+            }
+            
+            // Form submission handler
+            document.getElementById('download-form').addEventListener('submit', function(e) {
+                document.getElementById('download-button').disabled = true;
+                document.getElementById('download-button').innerText = 'Processing...';
+            });
+            
+            // New download button handler
+            document.getElementById('new-download-btn').addEventListener('click', function() {
+                clearCurrentTask();
+            });
+            
+            // Batch mode toggle
+            document.getElementById('batch_mode').addEventListener('change', function() {
+                toggleBatchMode(this.checked);
+            });
+
+            // Initialize batch mode state
+            toggleBatchMode(document.getElementById('batch_mode').checked);
+        });
+        
+        // Toggle between single URL input and batch URL textarea
+        function toggleBatchMode(isBatchMode) {
+            const inputElement = document.getElementById('url-input');
+            const textareaElement = document.getElementById('url-textarea');
+            const singleHint = document.getElementById('single-url-hint');
+            const batchHint = document.getElementById('batch-url-hint');
+            
+            if (isBatchMode) {
+                inputElement.style.display = 'none';
+                textareaElement.style.display = 'block';
+                singleHint.style.display = 'none';
+                batchHint.style.display = 'block';
+                
+                // Transfer any existing value
+                if (inputElement.value && !textareaElement.value) {
+                    textareaElement.value = inputElement.value;
+                }
+                
+                // Disable the input so it doesn't get submitted
+                inputElement.disabled = true;
+                textareaElement.disabled = false;
+            } else {
+                inputElement.style.display = 'block';
+                textareaElement.style.display = 'none';
+                singleHint.style.display = 'block';
+                batchHint.style.display = 'none';
+                
+                // Transfer only the first line if switching from batch to single
+                if (textareaElement.value && !inputElement.value) {
+                    const firstLine = textareaElement.value.split('\n')[0];
+                    inputElement.value = firstLine || '';
+                }
+                
+                // Enable the input and disable textarea
+                inputElement.disabled = false;
+                textareaElement.disabled = true;
+            }
+        }
+        
+        function startProgressTracking(taskId) {
+            // Show progress container
+            document.getElementById('progress-container').style.display = 'block';
+            
+            // Hide the form
+            document.getElementById('download-form').style.display = 'none';
+            
+            // Start polling for progress
+            checkProgress(taskId);
+        }
+        
+        function checkProgress(taskId) {
+            fetch(`/check_progress/${taskId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Task not found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    updateProgressUI(data);
+                    
+                    // Continue polling if download is in progress
+                    if (data.status === 'preparing' || data.status === 'downloading' || data.status === 'processing') {
+                        setTimeout(() => checkProgress(taskId), 1000);
+                    } else {
+                        // Download completed or failed
+                        finishDownload(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking progress:', error);
+                    // If task not found, reset UI
+                    document.getElementById('progress-container').style.display = 'none';
+                    document.getElementById('download-form').style.display = 'block';
+                });
+        }
+        
+        function updateProgressUI(data) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressCount = document.getElementById('progress-count');
+            const progressStatus = document.getElementById('progress-status');
+            
+            // Update progress bar
+            progressBar.style.width = `${data.progress}%`;
+            progressText.textContent = `${data.progress}%`;
+            progressCount.textContent = `${data.completed}/${data.total} songs`;
+            
+            // Update status text
+            if (data.status === 'preparing') {
+                progressStatus.textContent = 'Preparing download...';
+            } else if (data.status === 'processing') {
+                progressStatus.textContent = 'Processing URLs...';
+            } else if (data.status === 'downloading') {
+                progressStatus.textContent = 'Downloading songs...';
+            } else if (data.status === 'completed') {
+                progressStatus.textContent = 'Download completed!';
+            } else if (data.status === 'error') {
+                progressStatus.textContent = `Error: ${data.error || 'Unknown error'}`;
+            }
+        }
+        
+        function finishDownload(data) {
+            const completionMessage = document.getElementById('completion-message');
+            const newDownloadBtn = document.getElementById('new-download-btn');
+            
+            // Clear any existing completion message
+            completionMessage.innerHTML = '';
+            
+            if (data.status === 'completed') {
+                // Add success message
+                const successMessage = document.createElement('div');
+                successMessage.className = 'alert alert-success';
+                successMessage.innerHTML = `<span class="alert-icon">✅</span> Successfully downloaded ${data.total} songs to '${data.output_dir}'`;
+                completionMessage.appendChild(successMessage);
+            } else if (data.status === 'error') {
+                // Add error message
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'alert alert-error';
+                errorMessage.innerHTML = `<span class="alert-icon">⚠️</span> ${data.error || 'Unknown error occurred'}`;
+                completionMessage.appendChild(errorMessage);
+            }
+            
+            // Show button to start new download
+            newDownloadBtn.style.display = 'block';
+        }
+        
+        function clearCurrentTask() {
+            // Send request to clear the task
+            fetch('/clear_task', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reset UI state
+                    document.getElementById('progress-container').style.display = 'none';
+                    document.getElementById('download-form').style.display = 'block';
+                    document.getElementById('download-button').disabled = false;
+                    document.getElementById('download-button').innerText = 'Download';
+                    document.getElementById('completion-message').innerHTML = '';
+                    document.getElementById('new-download-btn').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing task:', error);
+            });
+        }
+    </script>
+</body>
+</html>
