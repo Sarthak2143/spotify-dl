@@ -12,10 +12,10 @@ A Python application that downloads songs from Spotify playlists, albums, or you
 - Graceful handling of interruptions
 - Automatic retry mechanism for failed downloads
 - Multithreaded YouTube URL fetching
-- **Web interface for easier use**
-- **Batch mode for downloading multiple playlists/albums at once**
-- **Real-time progress tracking**
-- **Custom download location support**
+- Web interface for easier use
+- Batch mode for downloading multiple playlists/albums at once
+- Real-time progress tracking
+- Custom download location support
 
 ## Prerequisites
 
