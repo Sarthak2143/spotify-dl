@@ -1,7 +1,7 @@
 import os
 import time
 import threading
-from main import download_youtube_audio
+from backend import download_youtube_audio
 import multiprocessing
 
 # This is a global variable accessible to the main process only

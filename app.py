@@ -5,7 +5,7 @@ import threading
 import uuid
 import time
 import json
-from main import get_songs_url, download_user_library
+from backend import get_songs_url, download_user_library
 from downloader import download_with_tracking
 
 # Initialize Flask app
